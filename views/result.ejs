@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hasil URL</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 500px; }
+        input { width: 100%; padding: 10px; margin: 15px 0; border: 1px solid #ddd; border-radius: 5px; background: #eee; }
+        .btn-copy { background: #28a745; color: white; border: none; padding: 10px; cursor: pointer; width: 100%; border-radius: 5px; }
+        .back-link { display: block; margin-top: 20px; text-decoration: none; color: #007bff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>File Berhasil Diupload!</h2>
+        <p>Link Public Anda:</p>
+        <input type="text" value="<%= url %>" id="urlInput" readonly>
+        <button class="btn-copy" onclick="copyText()">Salin Link</button>
+        <a href="/" class="back-link">← Upload File Lain</a>
+    </div>
+
+    <script>
+        function copyText() {
+            var copyText = document.getElementById("urlInput");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            document.execCommand("copy");
+            alert("Link berhasil disalin!");
+        }
+    </script>
+</body>
+</html>

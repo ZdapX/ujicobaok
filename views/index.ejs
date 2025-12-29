@@ -3,37 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Media to URL - Fast Upload</title>
+    <title>Media to URL - Fast & Public</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 400px; }
-        .progress-container { width: 100%; background: #eee; border-radius: 10px; margin: 20px 0; display: none; }
-        .progress-bar { width: 0%; height: 10px; background: #007bff; border-radius: 10px; transition: width 0.2s; }
-        input[type="file"] { margin: 20px 0; width: 100%; }
-        button { background: #007bff; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        button:disabled { background: #ccc; }
-        #status { margin-top: 10px; font-size: 14px; color: #555; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 400px; }
+        h2 { color: #333; margin-bottom: 10px; }
+        .upload-area { border: 2px dashed #007bff; padding: 20px; border-radius: 10px; margin: 20px 0; cursor: pointer; }
+        input[type="file"] { display: none; }
+        .btn { background: #007bff; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .progress-container { width: 100%; background: #eee; border-radius: 10px; margin-top: 15px; display: none; }
+        .progress-bar { width: 0%; height: 10px; background: #28a745; border-radius: 10px; transition: width 0.1s; }
+        #status { margin-top: 10px; font-size: 14px; color: #666; }
     </style>
 </head>
 <body>
     <div class="card">
         <h2>Media to URL</h2>
-        <p>Direct Upload (Super Fast)</p>
+        <p>Pilih file apapun untuk mendapatkan link</p>
         
-        <input type="file" id="fileInput">
-        
+        <label for="fileInput" class="upload-area" id="dropZone">
+            <span id="fileName">Klik di sini untuk pilih file</span>
+            <input type="file" id="fileInput" onchange="updateFileName()">
+        </label>
+
         <div class="progress-container" id="progContainer">
             <div class="progress-bar" id="progBar"></div>
         </div>
-        
-        <button id="uploadBtn" onclick="startUpload()">Generate Link</button>
+
+        <button class="btn" id="uploadBtn" onclick="startUpload()">GENERATE LINK</button>
         <div id="status"></div>
     </div>
 
     <script>
-        // GANTI INI dengan Nama Preset Unsigned kamu dari langkah 1
-        const UPLOAD_PRESET = 'ml_default'; 
         const CLOUD_NAME = 'dnb0q2s2h';
+        const UPLOAD_PRESET = 'mediatourl'; // Sudah sesuai request
+
+        function updateFileName() {
+            const input = document.getElementById('fileInput');
+            document.getElementById('fileName').innerText = input.files[0].name;
+        }
 
         async function startUpload() {
             const fileInput = document.getElementById('fileInput');
@@ -42,63 +51,48 @@
             const progBar = document.getElementById('progBar');
             const progContainer = document.getElementById('progContainer');
 
-            if (fileInput.files.length === 0) return alert('Pilih file dulu!');
+            if (fileInput.files.length === 0) return alert('Silakan pilih file!');
 
             const file = fileInput.files[0];
             const formData = new FormData();
             formData.append('file', file);
             formData.append('upload_preset', UPLOAD_PRESET);
 
-            // Tampilkan UI Loading
             btn.disabled = true;
             progContainer.style.display = 'block';
-            status.innerText = 'Mengupload langsung ke Cloudinary...';
+            status.innerText = 'Memulai upload...';
 
-            try {
-                // AJAX Upload langsung ke Cloudinary
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, true);
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, true);
 
-                // Update Progress Bar
-                xhr.upload.onprogress = (e) => {
-                    if (e.lengthComputable) {
-                        const percent = (e.loaded / e.total) * 100;
-                        progBar.style.width = percent + '%';
-                        status.innerText = `Proses: ${Math.round(percent)}%`;
-                    }
-                };
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    progBar.style.width = percent + '%';
+                    status.innerText = `Mengupload: ${percent}%`;
+                }
+            };
 
-                xhr.onload = async () => {
-                    if (xhr.status === 200) {
-                        const response = JSON.parse(xhr.responseText);
-                        
-                        // Setelah sukses, kirim info ke backend Vercel untuk dapet link cantik
-                        status.innerText = 'Finalisasi link...';
-                        
-                        // Redirect ke halaman hasil dengan membawa data
-                        const type = response.resource_type;
-                        const filename = response.secure_url.split('/').pop();
-                        
-                        window.location.href = `/generate-result?type=${type}&file=${filename}`;
-                    } else {
-                        alert('Upload gagal!');
-                        resetUI();
-                    }
-                };
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    const res = JSON.parse(xhr.responseText);
+                    status.innerText = 'Berhasil! Mengalihkan...';
+                    
+                    // Ambil info penting dari Cloudinary
+                    const type = res.resource_type; // image/video/raw
+                    // Ambil nama file dan ekstensi dari public_id dan format
+                    const finalFileName = res.public_id.split('/').pop() + '.' + (res.format || res.secure_url.split('.').pop());
 
-                xhr.send(formData);
+                    // Arahkan ke backend Vercel untuk generate link cantik
+                    window.location.href = `/generate-result?type=${type}&file=${finalFileName}`;
+                } else {
+                    alert('Upload Gagal! Pastikan Preset "mediatourl" sudah dibuat di Cloudinary.');
+                    btn.disabled = false;
+                    status.innerText = '';
+                }
+            };
 
-            } catch (err) {
-                console.error(err);
-                alert('Terjadi kesalahan!');
-                resetUI();
-            }
-        }
-
-        function resetUI() {
-            document.getElementById('uploadBtn').disabled = false;
-            document.getElementById('progContainer').style.display = 'none';
-            document.getElementById('status').innerText = '';
+            xhr.send(formData);
         }
     </script>
 </body>

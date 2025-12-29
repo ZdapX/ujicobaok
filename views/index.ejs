@@ -1,32 +1,104 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Media to URL</title>
+    <title>Media to URL - Fast Upload</title>
     <style>
-        body { font-family: sans-serif; background: #eef2f3; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 350px; }
-        input[type="file"] { margin: 20px 0; display: block; width: 100%; }
-        button { background: #4a90e2; color: white; border: none; padding: 15px; width: 100%; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        button:hover { background: #357abd; }
-        #status { margin-top: 15px; color: #666; font-size: 14px; display: none; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 400px; }
+        .progress-container { width: 100%; background: #eee; border-radius: 10px; margin: 20px 0; display: none; }
+        .progress-bar { width: 0%; height: 10px; background: #007bff; border-radius: 10px; transition: width 0.2s; }
+        input[type="file"] { margin: 20px 0; width: 100%; }
+        button { background: #007bff; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        button:disabled { background: #ccc; }
+        #status { margin-top: 10px; font-size: 14px; color: #555; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2>Upload Media</h2>
-        <form action="/upload" method="POST" enctype="multipart/form-data" onsubmit="showLoading()">
-            <input type="file" name="media" required>
-            <button type="submit" id="btn">Generate URL</button>
-            <div id="status">Sedang mengupload... Mohon tunggu...</div>
-        </form>
+        <h2>Media to URL</h2>
+        <p>Direct Upload (Super Fast)</p>
+        
+        <input type="file" id="fileInput">
+        
+        <div class="progress-container" id="progContainer">
+            <div class="progress-bar" id="progBar"></div>
+        </div>
+        
+        <button id="uploadBtn" onclick="startUpload()">Generate Link</button>
+        <div id="status"></div>
     </div>
+
     <script>
-        function showLoading() {
-            document.getElementById('status').style.display = 'block';
-            document.getElementById('btn').disabled = true;
-            document.getElementById('btn').innerText = 'Processing...';
+        // GANTI INI dengan Nama Preset Unsigned kamu dari langkah 1
+        const UPLOAD_PRESET = 'ml_default'; 
+        const CLOUD_NAME = 'dnb0q2s2h';
+
+        async function startUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const btn = document.getElementById('uploadBtn');
+            const status = document.getElementById('status');
+            const progBar = document.getElementById('progBar');
+            const progContainer = document.getElementById('progContainer');
+
+            if (fileInput.files.length === 0) return alert('Pilih file dulu!');
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', UPLOAD_PRESET);
+
+            // Tampilkan UI Loading
+            btn.disabled = true;
+            progContainer.style.display = 'block';
+            status.innerText = 'Mengupload langsung ke Cloudinary...';
+
+            try {
+                // AJAX Upload langsung ke Cloudinary
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, true);
+
+                // Update Progress Bar
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const percent = (e.loaded / e.total) * 100;
+                        progBar.style.width = percent + '%';
+                        status.innerText = `Proses: ${Math.round(percent)}%`;
+                    }
+                };
+
+                xhr.onload = async () => {
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        
+                        // Setelah sukses, kirim info ke backend Vercel untuk dapet link cantik
+                        status.innerText = 'Finalisasi link...';
+                        
+                        // Redirect ke halaman hasil dengan membawa data
+                        const type = response.resource_type;
+                        const filename = response.secure_url.split('/').pop();
+                        
+                        window.location.href = `/generate-result?type=${type}&file=${filename}`;
+                    } else {
+                        alert('Upload gagal!');
+                        resetUI();
+                    }
+                };
+
+                xhr.send(formData);
+
+            } catch (err) {
+                console.error(err);
+                alert('Terjadi kesalahan!');
+                resetUI();
+            }
+        }
+
+        function resetUI() {
+            document.getElementById('uploadBtn').disabled = false;
+            document.getElementById('progContainer').style.display = 'none';
+            document.getElementById('status').innerText = '';
         }
     </script>
 </body>
